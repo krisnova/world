@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# Copyright (C) 2019 The Falco Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+#
+# Include an empty file called whatever KEY is set to in the directory you plan on caching
+# Also make sure that is is included in the Docker file like VOLUME /my/cache/dir
+KEY="NOVA"
+
+#
+# The directory on the HOST you want to use as a temporary cache
+CACHE="/tmp/novacache"
+
+#
+# The directory on the HOST you want a best-effort restore to go back to
+RESTORE="/home/nova/falco/build"
+
+#
+# Seconds to sleep for the rsync
+SLEEP=1
+
+#
+# This runs in the background, and does the rsync magic for you
+function cache() {
+  end=0
+  while true; do
+    sleep ${SLEEP}
+    d=$(find /var/lib/docker/volumes/ -name ${KEY} -printf "%h\n")
+    if [[ ${d} == "" ]] || [[ $end == 1 ]]; then
+      continue
+    fi
+    echo "----------------------------------------------------------------------------------------------"
+    dd=$(dirname "${d}")
+    echo "Processing: ${dd}"
+    echo ""
+    if [ -z "${dfinal}" ]; then
+      end=1
+      dfinal=${dd}
+    fi
+    echo "Contents:"
+    ls ${dd}
+    echo ""
+    if [ "${dd}" != "${dfinal}" ]; then
+      echo "Rsync exit COMPLETE"
+      exit 0
+
+    fi
+    # rsync magic
+    # NOTE this still could leak if docker decides to unlink during the sleep
+    # Sorry, ephemeral containers are hard.
+    rsync -a ${dd}/ $CACHE
+    echo ""
+  done
+}
+
+# Setup the cache and begin the background process to rsync
+mkdir -p $CACHE
+cache &
+pid=$!
+
+#
+# Here is where your docker commands actually go
+#
+# --------------------------------------
+docker build -t krisnova/falco:latest .
+docker push krisnova/falco:latest
+# --------------------------------------
+#
+
+# The background process should just exit
+# But just in case, we kill it here after a push
+sleep 1
+echo "----"
+echo ""
+kill $pid
+rm -rf $CACHE/falco
+mv $CACHE/* $RESTORE
+
+echo "Cache restored"

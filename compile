@@ -1,0 +1,25 @@
+#!/bin/bash
+##
+# We can keep the artifacts around for both the container and build falco userspace components
+#
+BUILD_DIR="container"
+BUILD_DIR="build"
+cd ./falco
+
+function init(){
+    cd $BUILD_DIR
+    cmake ../ \
+      -DBUILD_BPF=ON \
+      -DBUILD_WARNINGS_AS_ERRORS="OFF" \
+      -DCMAKE_BUILD_TYPE="Release" \
+      -DCMAKE_INSTALL_PREFIX="/usr" \
+      -DFALCO_ETC_DIR="/etc/falco" \
+      -DUSE_BUNDLED_DEPS=OFF
+    cd ../
+}
+
+init
+
+cd $BUILD_DIR
+make falco
+cp userspace/falco/falco /usr/bin/falco

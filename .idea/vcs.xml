@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$/falco" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/falco/build/string-view-lite-prefix/src/string-view-lite" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/sysdig" vcs="Git" />
+  </component>
+</project>
